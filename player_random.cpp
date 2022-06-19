@@ -285,7 +285,7 @@ int evaluate(int isMax){
     if(isMax)
         return (p1_value-p2_value);
     else
-        return (p2_value-p2_value);
+        return (p2_value-p1_value);
 }
 
 int alpha_beta(int depth, bool isMax, int alpha, int beta, Node node){
@@ -314,7 +314,7 @@ int alpha_beta(int depth, bool isMax, int alpha, int beta, Node node){
     int len = valid_node.size();
  
     if (isMax){ //玩家1當max
-        int best_value = INT_MIN;
+        int best_value = INT_MAX;
         for (int i=0;i<len;i++){
 			int temp = alpha_beta(depth - 1, false, alpha, beta, valid_node[i]);
 			if (best_value > temp){
@@ -330,7 +330,7 @@ int alpha_beta(int depth, bool isMax, int alpha, int beta, Node node){
         return best_value;
     }
     else{ //玩家2當min
-        int best_value = INT_MAX;
+        int best_value = INT_MIN;
         for (int i=0;i<len;i++){
 			int temp = alpha_beta(depth - 1, true, alpha, beta, valid_node[i]);
 			if (best_value < temp){
