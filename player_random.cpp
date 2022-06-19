@@ -39,10 +39,10 @@ void write_valid_spot(std::ofstream& fout) {
 	
 	for (int i=0;i<15;i++){
 		for (int j=0;j<15;j++){
-			if (board[x][y] == EMPTY){
+			if (board[i][j] == EMPTY){
                 Node node;
                 node.row = i; node.col = j;
-				int temp = alpha_beta (2, true,INT_MIN, INT_MAX, node);
+				int temp = alpha_beta (2, true, INT_MIN, INT_MAX, node);
 				if (M < temp){
 					M = temp;
 					x = i;
