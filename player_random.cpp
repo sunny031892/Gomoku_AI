@@ -288,7 +288,7 @@ int evaluate(int isMax){
         return (p2_value-p2_value);
 }
 
-int minimax(int depth, bool isMax, int alpha, int beta, Node node){
+int alpha_beta(int depth, bool isMax, int alpha, int beta, Node node){
     if(check_board() == 1) return INT_MAX; //玩家1贏了
     else if(check_board() == 2) return INT_MIN; //玩家2贏了
 
@@ -316,7 +316,7 @@ int minimax(int depth, bool isMax, int alpha, int beta, Node node){
     if (isMax){ //玩家1當max
         int best_value = INT_MIN;
         for (int i=0;i<len;i++){
-			int temp = minimax(depth - 1, false, alpha, beta, valid_node[i]);
+			int temp = alpha_beta(depth - 1, false, alpha, beta, valid_node[i]);
 			if (best_value > temp){
 				best_value = temp;
 			}
@@ -332,7 +332,7 @@ int minimax(int depth, bool isMax, int alpha, int beta, Node node){
     else{ //玩家2當min
         int best_value = INT_MAX;
         for (int i=0;i<len;i++){
-			int temp = minimax(depth - 1, true, alpha, beta, valid_node[i]);
+			int temp = alpha_beta(depth - 1, true, alpha, beta, valid_node[i]);
 			if (best_value < temp){
 				best_value = temp;
 			}
