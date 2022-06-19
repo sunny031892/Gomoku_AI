@@ -21,6 +21,9 @@ struct Node{
 int player;
 const int SIZE = 15;
 std::array<std::array<int, SIZE>, SIZE> board;
+int alpha_beta(int depth, bool isMax, int alpha, int beta, Node node);
+int evaluate(int isMax);
+int check_board();
 
 void read_board(std::ifstream& fin) {
     fin >> player;
@@ -32,19 +35,29 @@ void read_board(std::ifstream& fin) {
 }
 
 void write_valid_spot(std::ofstream& fout) {
-    srand(time(NULL));
-    int x, y;
-    // Keep updating the output until getting killed.
-    while(true) {
-        // Choose a random spot.
-        int x = (rand() % SIZE);
-        int y = (rand() % SIZE);
-        if (board[x][y] == EMPTY) {
-            fout << x << " " << y << std::endl;
-            // Remember to flush the output to ensure the last action is written to file.
-            fout.flush();
-        }
-    }
+	int M = INT_MIN, x = -1, y = -1;
+	
+	for (int i=0;i<15;i++){
+		for (int j=0;j<15;j++){
+			if (board[x][y] == EMPTY){
+                Node node;
+                node.row = i; node.col = j;
+				int temp = alpha_beta (2, true,INT_MIN, INT_MAX, node);
+				if (M < temp){
+					M = temp;
+					x = i;
+					y = j;
+				}
+			}
+		}
+	}
+	if (x == -1 && y == -1){
+		x = 15/2;
+		y = 15/2;
+	}
+    fout << x << " " << y << std::endl;
+    // Remember to flush the output to ensure the last action is written to file.
+    fout.flush();
 }
 
 int check_board(){
