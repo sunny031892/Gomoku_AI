@@ -15,6 +15,10 @@ enum SPOT_STATE {
     WHITE = 2
 };
 
+enum GAME_STATE {
+    UNKNOWN, LOSE, DRAW, NONE
+};
+
 struct Node{
     int row, col;
 };
@@ -58,14 +62,18 @@ private:
     Board board;
     int player;
     void get_legal_move(); //finish
-
+    GAME_STATE now_state = UNKNOWN;
 public:
     std::vector<Point> legal_move; //記錄所有的合法移動
     State(){};
     State(Board board, int player); //finish
     int evaluate(); //finish
     State* next_state(Point move); //finish
+    GAME_STATE check_state();
 };
+
+int alpha_beta_evaluate(State, int, int, int);
+Point alpha_beta_get_move(State, int);
 
 //constructor
 State::State(Board board, int player): board(board), player(player){
@@ -95,9 +103,8 @@ int check_5cnt(Board_min board){
             return 1;
         //直的直接用bitwise比就好
         for(int j=0;j<15;j++){
-            if(((board[j]>>i)&=0b11111) == 0b11111){
+            if(((board[j]>>i)&=0b11111) == 0b11111)
                 return 1;
-            }
         }
     }
     return 0;
@@ -136,8 +143,7 @@ int check_4alive(Board_min board, Board_min empty){
 //計算四個連載一起
 int count_4cnt(Board_min board, Board_min empty){
     int count = 0;
-
-    for(int i=0; i<SIZE-4; i+=1){
+    for(int i=0; i<15-4; i+=1){
         //count計算有幾個1
         //橫的(左右一端空白)
         count += (empty[i] & board[i+1] & board[i+2] & board[i+3] & board[i+4]).count();
@@ -162,7 +168,6 @@ int count_4cnt(Board_min board, Board_min empty){
 int count_3cnt(Board_min board, Board_min empty){
     int count = 0;
     for(int i=0;i<15-2;i++){
-
         //橫的
         for(int j=0;j<15;j++){
             //預設是錯的
@@ -296,116 +301,111 @@ State* State::next_state(Point move){
     return next;
 }
 
+GAME_STATE State::check_state(){
+    if (this->now_state != UNKNOWN)
+        return this->now_state;
+        
+    Board_min next = board[3-this->player]; //下一個玩家
+    if (check_5cnt(next)) //5個連載一起就輸了q
+        this->now_state = LOSE;
+    else if (this->legal_move.empty()) //都跑完了就畫出來
+        this->now_state = DRAW;
+    else
+        this->now_state = NONE;
+    return this->now_state;
+}
 
-class alpha_beta{
-    public:
-    void write_valid_spot(std::ofstream&);
-    int mmalpha_beta(int, int, int, int, Node);
-    int evaluate(int);
-    int check_board();
-};
-
-void read_board(std::ifstream& fin) {
-    fin >> player;
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            fin >> board[i][j];
+int alpha_beta_evaluate(State *state, int depth, int alpha, int beta){
+    GAME_STATE now_state = state->check_state();
+    //各種遊戲狀態(輸 畫子)
+    if(now_state == LOSE){
+        delete state;
+        return INT_MIN;
+    }
+    if(now_state == DRAW){
+        delete state;
+        return 0;
+    }
+    //深度=0代表可以return了
+    if(depth == 0){
+        int score = state->evaluate();
+        delete state;
+        return score;
+    }
+    //alpha_beta演算法
+    for(auto move: state->legal_move){
+        //alpha beta要換人考慮 所以反過來
+        int score = -alpha_beta_evaluate(state->next_state(move), depth-1, -beta, -alpha);
+        alpha = max(score, alpha);
+        if(alpha >= beta){
+            delete state;
+            return alpha;
         }
     }
+    delete state;
+    return alpha;
 }
 
-void alpha_beta::write_valid_spot(std::ofstream& fout) {
-	int M = INT_MIN, x = -1, y = -1;
-	
-	for (int i=0;i<15;i++){
-		for (int j=0;j<15;j++){
-			if (board[i][j] == EMPTY){
-                Node node;
-                node.row = i; node.col = j;
-				int temp = mmalpha_beta (1, 1, INT_MIN, INT_MAX, node);
-				if (M < temp){
-					M = temp;
-					x = i;
-					y = j;
-				}
-			}
-		}
-	}
-    if (x == -1 && y == -1){
-		x = 15/2;
-		y = 15/2;
-	}
-    fout << x << " " << y << std::endl;
-    // Remember to flush the output to ensure the last action is written to file.
-    fout.flush();
-}
-
-int alpha_beta::mmalpha_beta(int depth, int isMax, int alpha, int beta, Node node){
-    if(check_board() == 1) return INT_MAX; //玩家1贏了
-    else if(check_board() == 2) return INT_MIN; //玩家2贏了
-
-    if (depth == 0){
-		int value = 0;
-		value = evaluate(isMax);
-		return value;
-	}
-
-    //找到所有可以放的點
-    vector<Node> valid_node;
-	for (int i=0;i<15;i++){
-		for (int j=0;j<15;j++){
-			if (board[i][j] == 0 ){
-                Node valid;
-                valid.row = i; valid.col = j;
-				valid_node.push_back(valid);
-			}
-		}
-	}
-
-    //開始跑!
-    int len = valid_node.size();
- 
-    if (isMax == 1){ //玩家1當max
-        int best_value = INT_MAX;
-        for (int i=0;i<len;i++){
-			int temp = mmalpha_beta(depth - 1, 2, alpha, beta, valid_node[i]);
-			if (best_value > temp){
-				best_value = temp;
-			}
-			if (beta > best_value){
-				beta = best_value;
-			 }	
-			 if (alpha >= beta){
-				break;
-			 }
-		}
-        return best_value;
+//用那個演算法來找最好的移動方法
+Point alpha_beta_get_move(State *state, int depth){
+    Point best_move = Point(-1, -1); //初始化在-1-1
+    int alpha = INT_MIN;
+    auto all_moves = state->legal_move;
+    for(Point move: all_moves){
+        int score = -alpha_beta_evaluate(state->next_state(move), depth-1, INT_MIN, -alpha);
+        if(score > alpha){
+            best_move = move;
+            alpha = score;
+        }
     }
-    else if(isMax == 2){ //玩家2當min
-        int best_value = INT_MIN;
-        for (int i=0;i<len;i++){
-			int temp = mmalpha_beta(depth - 1, 1, alpha, beta, valid_node[i]);
-			if (best_value < temp){
-				best_value = temp;
-			}
-			if (alpha < best_value){
-				beta = best_value;
-			}	
-			if (alpha >= beta){
-				break;
-			}
-		}
-        return best_value;
+    return best_move;
+}
+
+State root;
+void read_board(std::ifstream& fin) {
+    Board board; //第一個board
+    fin >> player;
+    for (int i=0;i<15;i++) {
+        for (int j=0;j<15;j++) {
+            board[0][i][j] = 0; //三圍陣列初始化
+            board[1][i][j] = 0;
+            board[2][i][j] = 0;
+            int temp; fin >> temp; //輸入012
+            board[temp][i][j] = 1; //把他丟進去三維振烈裡
+        }
+    }
+    root = State(board, player); //初始狀態!
+}
+
+void write_valid_spot(std::ofstream& fout) {
+    auto moves = root.legal_move;
+    for(auto move:moves){
+        if(root.next_state(move)->check_state() == LOSE){
+            fout << move.x << " " << move.y << endl;
+            fout.flush();
+            return;
+        }
+    }
+    if(moves.empty())
+        return;
+    // Keep updating the output until getting killed.
+    int depth = 1;
+    while (true){
+        auto move = alpha_beta_get_move(&root, depth);
+        if(move.x != -1 && move.y != -1){
+            fout << move.x << " " << move.y << endl;
+            fout.flush();
+        }
+        depth += 1;
     }
 }
-
 
 int main(int, char** argv) {
     std::ifstream fin(argv[1]);
     std::ofstream fout(argv[2]);
+    get_all_move();
     read_board(fin);
-    alpha_beta player;
-    player.write_valid_spot(fout);
+    write_valid_spot(fout);
     fin.close();
     fout.close();
     return 0;
