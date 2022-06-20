@@ -406,7 +406,7 @@ void write_valid_spot(std::ofstream& fout) {
     if(moves.empty())
         return;
     //在下齊的過程中持續更新狀態
-    int depth = 3;
+    int depth = 4;
     while (true){
         auto move = alpha_beta_get_move(&root, depth);
         if(move.x != -1 && move.y != -1){
