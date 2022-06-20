@@ -10,9 +10,7 @@
 using namespace std;
 
 enum SPOT_STATE {
-    EMPTY = 0,
-    BLACK = 1,
-    WHITE = 2
+    EMPTY = 0, BLACK = 1, WHITE = 2
 };
 
 enum GAME_STATE {
@@ -23,7 +21,6 @@ enum GAME_STATE {
 struct Node{
     int row, col;
 };
-
 
 //從main偷來的point定義
 struct Point {
@@ -91,6 +88,110 @@ void get_all_move(){
       all_move.push_back(Point(i,j));
 }
 
+int check_board(Board_min board){
+    //檢查棋盤有沒有結束 玩家1獲勝回傳1 玩家2獲勝回傳2 沒結束回傳0
+    //橫的檢查
+    for (int i=0;i<15;i++) { //直排0~15
+        for (int j=0;j<11;j++) { //橫排最多到10就好(10+4就是最後)
+            if (board[i][j] != ' ') {
+                if (board[i][j] == 1 && board[i][j+1] == 1 && board[i][j+2] == 1 &&
+                    board[i][j+3] == 1 && board[i][j+4] == 1) {
+                    return 1;
+                }
+                else if (board[i][j] == 2 && board[i][j+1] == 2 && board[i][j+2] == 2 &&
+                    board[i][j+3] == 2 && board[i][j+4] == 2) {
+                    return 2;
+                }
+            }
+        }
+    }
+
+    //直的檢查
+    for (int i=0;i<15;i++) {
+        for (int j=0;j<11;j++) {
+            if (board[j][i] != ' '){
+                if (board[j][i] == 1 && board[j+1][i] == 1 && board[j+2][i] == 1 &&
+                    board[j+3][i] == 1 && board[j+4][i] == 1) {
+                    return 1;
+                }
+                else if (board[j][i] == 2 && board[j+1][i] == 2 && board[j+2][i] == 2 &&
+                    board[j+3][i] == 2 && board[j+4][i] == 2) {
+                    return 2;
+                }
+            }
+        }
+    }
+
+    //左上右下(上半部)
+    for (int j=0;j<11;j++) {
+        int k = j;
+        for (int i=0;i<=10-j;i++,k++) {
+            if (board[i][k] != ' '){
+                if (board[i][k] == 1 && board[i+1][k+1] == 1 && board[i+2][k+2] == 1 &&
+                    board[i+3][k+3] == 1 && board[i+4][k+4] == 1) {
+                    return 1;
+                }
+                else if (board[i][k] == 2 && board[i+1][k+1] == 2 && board[i+2][k+2] == 2 &&
+                    board[i+3][k+3] == 2 && board[i+4][k+4] == 2) {
+                    return 2;
+                }
+            }
+        }
+    }
+
+    //左上右下(下半部)
+    for (int i=1;i<=10;i++) {
+        int k = i;
+        for (int j=0;k<=10;k++,j++) {
+            if (board[k][j] != ' '){
+                if (board[k][j] == 1 && board[k+1][j+1] == 1 && board[k+2][j+2] == 1 &&
+                    board[k+3][j+3] == 1 && board[k+4][j+4] == 1) {
+                    return 1;
+                }
+                else if (board[k][j] == 2 && board[k+1][j+1] == 2 && board[k+2][j+2] == 2 &&
+                    board[k+3][j+3] == 2 && board[k+4][j+4] == 2) {
+                    return 2;
+                }
+            }
+        }
+    }
+
+    //右上左下(上半部)
+    for (int j=14;j>=5;j--) {
+        int k = j;
+        for (int i=0;k>=5;k--,i++) {
+            if (board[i][k]!=' ') {
+                if (board[i][k] == 1 && board[i+1][k-1] == 1 && board[i+2][k-2] == 1 &&
+                    board[i+3][k-3] == 1 && board[i+4][k-4] == 1) {
+                    return 1;
+                }
+                else if (board[i][k] == 2 && board[i+1][k-1] == 2 && board[i+2][k-2] == 2 &&
+                    board[i+3][k-3] == 2 && board[i+4][k-4] == 2) {
+                    return 2;
+                }
+            }
+        }
+    }
+
+    //佑上左下(下半部)
+    for (int i=1;i<=10;i++) {
+        int k = i;
+        for (int j=14;k<=10;k++,j--) {
+            if (board[k][j]!=' ') {
+                if (board[k][j] == 1 && board[k+1][j-1] == 1 && board[k+2][j-2] == 1 &&
+                    board[k+3][j-3] == 1 && board[k+4][j-4] == 1) {
+                    return 1;
+                }
+                else if (board[k][j] == 2 && board[k+1][j-1] == 2 && board[k+2][j-2] == 2 &&
+                    board[k+3][j-3] == 2 && board[k+4][j-4] == 2) {
+                    return 2;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 //看看有沒有五個連載一起(用bitwise確認!)
 int check_5cnt(Board_min board){
     for(int i=0;i<15-4;i++){
@@ -100,45 +201,15 @@ int check_5cnt(Board_min board){
         if((board[i] & board[i+1] & board[i+2] & board[i+3] & board[i+4]).any())
             return 1;
         //斜的把他們推到同一直排之後比
-        if((board[i] & (board[i+1]>>1) & (board[i+2]>>2) & (board[i+3]>>3) & (board[i+4]>>4)).any())
+        else if((board[i] & (board[i+1]>>1) & (board[i+2]>>2) & (board[i+3]>>3) & (board[i+4]>>4)).any())
             return 1;
-        if((board[i] & (board[i+1]<<1) & (board[i+2]<<2) & (board[i+3]<<3) & (board[i+4]<<4)).any())
+        else if((board[i] & (board[i+1]<<1) & (board[i+2]<<2) & (board[i+3]<<3) & (board[i+4]<<4)).any())
             return 1;
         //直的直接用bitwise比就好
         for(int j=0;j<15;j++){
             if(((board[j]>>i)&=0b11111) == 0b11111){
                 return 1;
             }
-        }
-    }
-    return 0;
-}
-
-//檢查是不是活四(看看兩端期中一邊是不是空的)
-int check_4alive(Board_min board, Board_min empty){
-    for(int i=0;i<15-4;i++){
-        //橫的左邊右邊是不是空的
-        if((empty[i] & board[i+1] & board[i+2] & board[i+3] & board[i+4]).any())
-            return 1;
-        if((board[i] & board[i+1] & board[i+2] & board[i+3] & empty[i+4]).any())
-            return 1;
-
-        //斜的對齊之後判斷
-        if((empty[i] & (board[i+1]>>1) & (board[i+2]>>2) & (board[i+3]>>3) & (board[i+4]>>4)).any())
-            return 1;
-        if((board[i] & (board[i+1]>>1) & (board[i+2]>>2) & (board[i+3]>>3) & (empty[i+4]>>4)).any())
-            return 1;
-        if((empty[i] & (board[i+1]<<1) & (board[i+2]<<2) & (board[i+3]<<3) & (board[i+4]<<4)).any())
-            return 1;
-        if((board[i] & (board[i+1]<<1) & (board[i+2]<<2) & (board[i+3]<<3) & (empty[i+4]<<4)).any())
-            return 1;
-
-        //直的用bitwise比較
-        for(int j=0;j<15;j++){
-            if(((board[j]>>i)&=0b11110) == 0b11110 && ((empty[j]>>i)&=0b00001) == 0b00001)
-                return 1;
-            if(((board[j]>>i)&=0b01111) == 0b01111 && ((empty[j]>>i)&=0b10000) == 0b10000)
-                return 1;
         }
     }
     return 0;
@@ -152,7 +223,7 @@ int count_4cnt(Board_min board, Board_min empty){
         //橫的(左右一端空白)
         count += (empty[i] & board[i+1] & board[i+2] & board[i+3] & board[i+4]).count(); //左空白
         count += (board[i] & board[i+1] & board[i+2] & board[i+3] & empty[i+4]).count(); //右空白
-        //斜的
+        //斜的對其之後判斷
         //左上右下
         count += (empty[i] & (board[i+1]>>1) & (board[i+2]>>2) & (board[i+3]>>3) & (board[i+4]>>4)).count();
         count += (board[i] & (board[i+1]>>1) & (board[i+2]>>2) & (board[i+3]>>3) & (empty[i+4]>>4)).count();
@@ -182,9 +253,9 @@ int count_3cnt(Board_min board, Board_min empty){
             if(i>0 && i<15-3)
                 double_empty = empty[j][15-i] && empty[j][15-i-4];
             if(i>1)
-                right_empty |= empty[j][15-i] && empty[j][15-i+1];
+                right_empty = empty[j][15-i] && empty[j][15-i+1];
             if(i<15-4)
-                left_empty |= empty[j][15-i-4] && empty[j][15-i-5];
+                left_empty = empty[j][15-i-4] && empty[j][15-i-5];
             count += (right_empty & target);
             count += (left_empty & target);
             count += (double_empty & target);
@@ -203,9 +274,9 @@ int count_3cnt(Board_min board, Board_min empty){
         if(i>0 && i<15-3) //雙活3
             double_empty = empty[i-1] & empty[i+3];
         if(i>1) //左邊兩顆是不是空的
-            left_empty |= empty[i-1] & empty[i-2];
+            left_empty = empty[i-1] & empty[i-2];
         if(i<15-4) //右邊兩顆是不是空的
-            right_empty |= empty[i+3] & empty[i+4];
+            right_empty = empty[i+3] & empty[i+4];
         //嘉進分數裡面
         count += (right_empty & target).count();
         count += (left_empty & target).count();
@@ -219,9 +290,9 @@ int count_3cnt(Board_min board, Board_min empty){
         if(i>0 && i<15-3)
             double_empty = (empty[i-1]<<1) & (empty[i+3]>>3);
         if(i>1)
-            left_empty |= (empty[i-1]<<1) & (empty[i-2]<<2);
+            left_empty = (empty[i-1]<<1) & (empty[i-2]<<2);
         if(i<15-4)
-            right_empty |= (empty[i+3]>>3) & (empty[i+4]>>4);
+            right_empty = (empty[i+3]>>3) & (empty[i+4]>>4);
         count += (right_empty & target).count();
         count += (left_empty & target).count();
         count += (double_empty & target).count();
@@ -234,9 +305,9 @@ int count_3cnt(Board_min board, Board_min empty){
         if(i>0 && i<15-3)
             double_empty = (empty[i-1]>>1) & (empty[i+3]<<3);
         if(i>1)
-            left_empty |= (empty[i-1]>>1) & (empty[i-2]>>2);
+            left_empty = (empty[i-1]>>1) & (empty[i-2]>>2);
         if(i<15-4)
-            right_empty |= (empty[i+3]<<3) & (empty[i+4]<<4);
+            right_empty = (empty[i+3]<<3) & (empty[i+4]<<4);
         count += (right_empty & target).count();
         count += (left_empty & target).count();
         count += (double_empty & target).count();
@@ -249,12 +320,12 @@ int State::evaluate(){
     Board_min empty = board[0];
     Board_min me = board[this->player];
     Board_min he = board[3-this->player]; //看我是1或2 對手是2或1
-    if(check_5cnt(me) || check_4alive(me, empty)) //連續五個或是有死||活四就贏了
+    if(check_5cnt(me) || count_4cnt(me, empty)) //連續五個或是有死||活四就贏了
         return INT_MAX;
-    if(count_4cnt(he, empty)>1) //對手會贏的狀況(超過兩個死||活四)
+    if(count_4cnt(he, empty)>=1) //對手會贏的狀況(超過兩個死||活四)
         return INT_MIN;
     //我有的連34數量-他有的連34數量
-    return count_3cnt(me, empty)-count_3cnt(he, empty)+count_4cnt(me, empty)-count_4cnt(he, empty);
+    return count_3cnt(me, empty)-(count_3cnt(he, empty))*2+count_4cnt(me, empty)-(count_4cnt(he, empty))*2;
 }
 
 //得到所有可以走的步驟
@@ -316,10 +387,10 @@ State* State::next_state(Point move){
     return next;
 }
 
+//檢查現在的狀態是甚麼
 GAME_STATE State::check_state(){
     if (this->now_state != UNKNOWN)
         return this->now_state;
-        
     Board_min next = board[3-this->player]; //下一個玩家
     if (check_5cnt(next)) //5個連載一起就輸了q
         this->now_state = LOSE;
@@ -406,7 +477,7 @@ void write_valid_spot(std::ofstream& fout) {
     if(moves.empty())
         return;
     //在下齊的過程中持續更新狀態
-    int depth = 4;
+    int depth = 2;
     while (true){
         auto move = alpha_beta_get_move(&root, depth);
         if(move.x != -1 && move.y != -1){
