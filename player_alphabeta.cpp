@@ -16,12 +16,14 @@ enum SPOT_STATE {
 };
 
 enum GAME_STATE {
+    //一開始未知 輸了 要畫子 沒有特定的狀態
     UNKNOWN, LOSE, DRAW, NONE
 };
 
 struct Node{
     int row, col;
 };
+
 
 //從main偷來的point定義
 struct Point {
@@ -59,19 +61,20 @@ typedef array<Board_min, 3> Board; //記錄三種點(三維陣列!)
 //一個class紀錄遊戲的狀態(有沒有結束等等)
 class State{
 private:
-    Board board;
-    int player;
+    Board board; //遊戲面板
+    int player; //player可能是1或2
     void get_legal_move(); //finish
-    GAME_STATE now_state = UNKNOWN;
+    GAME_STATE now_state = UNKNOWN; //一開始的狀態是未知
 public:
     std::vector<Point> legal_move; //記錄所有的合法移動
-    State(){};
+    State(){}; //constructor
     State(Board board, int player); //finish
     int evaluate(); //finish
     State* next_state(Point move); //finish
-    GAME_STATE check_state();
+    GAME_STATE check_state(); //finish
 };
 
+//alpha_beta 的計算和找下一個步驟(用alphabeta演算法)
 int alpha_beta_evaluate(State, int, int, int);
 Point alpha_beta_get_move(State, int);
 
@@ -103,8 +106,9 @@ int check_5cnt(Board_min board){
             return 1;
         //直的直接用bitwise比就好
         for(int j=0;j<15;j++){
-            if(((board[j]>>i)&=0b11111) == 0b11111)
+            if(((board[j]>>i)&=0b11111) == 0b11111){
                 return 1;
+            }
         }
     }
     return 0;
@@ -130,7 +134,7 @@ int check_4alive(Board_min board, Board_min empty){
             return 1;
 
         //直的用bitwise比較
-        for(int j=0;j<15; j++){
+        for(int j=0;j<15;j++){
             if(((board[j]>>i)&=0b11110) == 0b11110 && ((empty[j]>>i)&=0b00001) == 0b00001)
                 return 1;
             if(((board[j]>>i)&=0b01111) == 0b01111 && ((empty[j]>>i)&=0b10000) == 0b10000)
@@ -146,15 +150,17 @@ int count_4cnt(Board_min board, Board_min empty){
     for(int i=0; i<15-4; i+=1){
         //count計算有幾個1
         //橫的(左右一端空白)
-        count += (empty[i] & board[i+1] & board[i+2] & board[i+3] & board[i+4]).count();
-        count += (board[i] & board[i+1] & board[i+2] & board[i+3] & empty[i+4]).count();
+        count += (empty[i] & board[i+1] & board[i+2] & board[i+3] & board[i+4]).count(); //左空白
+        count += (board[i] & board[i+1] & board[i+2] & board[i+3] & empty[i+4]).count(); //右空白
         //斜的
+        //左上右下
         count += (empty[i] & (board[i+1]>>1) & (board[i+2]>>2) & (board[i+3]>>3) & (board[i+4]>>4)).count();
         count += (board[i] & (board[i+1]>>1) & (board[i+2]>>2) & (board[i+3]>>3) & (empty[i+4]>>4)).count();
+        //右上左下
         count += (empty[i] & (board[i+1]<<1) & (board[i+2]<<2) & (board[i+3]<<3) & (board[i+4]<<4)).count();
         count += (board[i] & (board[i+1]<<1) & (board[i+2]<<2) & (board[i+3]<<3) & (empty[i+4]<<4)).count();
         //直的
-        for(int j=0;j<15;j++){
+        for(int j=0;j<15;j++){ //和11110或01111做bitwise可以知道是不是依樣的
             count += (((board[j]>>i)&=0b11110) == 0b11110 && ((empty[j]>>i)&=0b00001) == 0b00001);
             count += (((board[j]>>i)&=0b01111) == 0b01111 && ((empty[j]>>i)&=0b10000) == 0b10000);
         }
@@ -170,61 +176,69 @@ int count_3cnt(Board_min board, Board_min empty){
     for(int i=0;i<15-2;i++){
         //橫的
         for(int j=0;j<15;j++){
-            //預設是錯的
-            bool one_empty = false, double_empty = false;
+            //預設是沒有
+            bool left_empty = false, right_empty = false, double_empty = false;
             bool target = (((board[j]>>i)&=0b111) == 0b111); //知道target是哪個子
             if(i>0 && i<15-3)
                 double_empty = empty[j][15-i] && empty[j][15-i-4];
             if(i>1)
-                one_empty |= empty[j][15-i] && empty[j][15-i+1];
+                right_empty |= empty[j][15-i] && empty[j][15-i+1];
             if(i<15-4)
-                one_empty |= empty[j][15-i-4] && empty[j][15-i-5];
-            count += (one_empty & target);
+                left_empty |= empty[j][15-i-4] && empty[j][15-i-5];
+            count += (right_empty & target);
+            count += (left_empty & target);
             count += (double_empty & target);
         }
 
-        Row one_empty; //其中一邊可以連成5顆
+        Row left_empty; //左邊可以連成5顆
+        Row right_empty; //右邊可以連成5顆
         Row double_empty; //記錄雙活3
         Row target; //連起來的子
 
         //直的部分
-        one_empty = Row(0);
+        right_empty = Row(0);
+        left_empty = Row(0);
         double_empty = Row(0);
         target = board[i] & board[i+1] & board[i+2];
         if(i>0 && i<15-3) //雙活3
             double_empty = empty[i-1] & empty[i+3];
         if(i>1) //左邊兩顆是不是空的
-            one_empty |= empty[i-1] & empty[i-2];
+            left_empty |= empty[i-1] & empty[i-2];
         if(i<15-4) //右邊兩顆是不是空的
-            one_empty |= empty[i+3] & empty[i+4];
+            right_empty |= empty[i+3] & empty[i+4];
         //嘉進分數裡面
-        count += (one_empty & target).count();
+        count += (right_empty & target).count();
+        count += (left_empty & target).count();
         count += (double_empty & target).count();
 
         //左上右下(邏輯同上)
-        one_empty = Row(0);
+        right_empty = Row(0);
+        left_empty = Row(0);
         double_empty = Row(0);
         target = board[i] & (board[i+1]>>1) & (board[i+2]>>2); //記得對其
         if(i>0 && i<15-3)
             double_empty = (empty[i-1]<<1) & (empty[i+3]>>3);
         if(i>1)
-            one_empty |= (empty[i-1]<<1) & (empty[i-2]<<2);
+            left_empty |= (empty[i-1]<<1) & (empty[i-2]<<2);
         if(i<15-4)
-            one_empty |= (empty[i+3]>>3) & (empty[i+4]>>4);
-        count += (one_empty & target).count();
+            right_empty |= (empty[i+3]>>3) & (empty[i+4]>>4);
+        count += (right_empty & target).count();
+        count += (left_empty & target).count();
         count += (double_empty & target).count();
 
         //右上左下
-        one_empty = Row(0);
+        right_empty = Row(0);
+        left_empty = Row(0);
         double_empty = Row(0);
         target = board[i] & (board[i+1]<<1) & (board[i+2]<<2); //記得對其
         if(i>0 && i<15-3)
             double_empty = (empty[i-1]>>1) & (empty[i+3]<<3);
         if(i>1)
-            one_empty |= (empty[i-1]>>1) & (empty[i-2]>>2);
+            left_empty |= (empty[i-1]>>1) & (empty[i-2]>>2);
         if(i<15-4)
-            one_empty |= (empty[i+3]<<3) & (empty[i+4]<<4);
-        count += (one_empty & target).count();
+            right_empty |= (empty[i+3]<<3) & (empty[i+4]<<4);
+        count += (right_empty & target).count();
+        count += (left_empty & target).count();
         count += (double_empty & target).count();
     }
     return count;
@@ -239,7 +253,8 @@ int State::evaluate(){
         return INT_MAX;
     if(count_4cnt(he, empty)>1) //對手會贏的狀況(超過兩個死||活四)
         return INT_MIN;
-    return count_3cnt(me, empty)-count_3cnt(he, empty);
+    //我有的連34數量-他有的連34數量
+    return count_3cnt(me, empty)-count_3cnt(he, empty)+count_4cnt(me, empty)-count_4cnt(he, empty);
 }
 
 //得到所有可以走的步驟
@@ -318,42 +333,44 @@ GAME_STATE State::check_state(){
 int alpha_beta_evaluate(State *state, int depth, int alpha, int beta){
     GAME_STATE now_state = state->check_state();
     //各種遊戲狀態(輸 畫子)
-    if(now_state == LOSE){
+    if(now_state == DRAW){
+        delete state;
+        return 0; //不用算 只是要畫子而已
+    }
+    else if(now_state == LOSE){
         delete state;
         return INT_MIN;
     }
-    if(now_state == DRAW){
-        delete state;
-        return 0;
-    }
     //深度=0代表可以return了
     if(depth == 0){
-        int score = state->evaluate();
-        delete state;
-        return score;
+        int score = state->evaluate(); //會呼叫state的evaluate函式 計算state value
+        delete state; //計算完之後刪掉這個state
+        return score; //回傳他算出來的state value
     }
     //alpha_beta演算法
-    for(auto move: state->legal_move){
-        //alpha beta要換人考慮 所以反過來
+    for(auto move: state->legal_move){ //從legal_move中找
+        //alpha beta要換人考慮 所以交換之後再加負號
         int score = -alpha_beta_evaluate(state->next_state(move), depth-1, -beta, -alpha);
-        alpha = max(score, alpha);
-        if(alpha >= beta){
+        alpha = max(score, alpha); //score和原本的alpha找比較大的
+        if(alpha >= beta){ //不用考慮了! 就是最好的步驟
             delete state;
-            return alpha;
+            return alpha; //回傳alpha(一個score)
         }
     }
     delete state;
-    return alpha;
+    return alpha; //跑完之後回傳alpha(一個score)
 }
 
 //用那個演算法來找最好的移動方法
+//pseudocode同時考慮alphabeta 這裡只考慮alpha, beta反轉就好ㄌ
 Point alpha_beta_get_move(State *state, int depth){
     Point best_move = Point(-1, -1); //初始化在-1-1
-    int alpha = INT_MIN;
-    auto all_moves = state->legal_move;
+    int alpha = INT_MIN; //alpha一開始是最小
+    auto all_moves = state->legal_move; //把所有可以的步驟丟到all_moves
     for(Point move: all_moves){
+        //跑一次就換一個玩家考慮 所以把計算的分數加負號 alpha直變成最小 beta改成-alpha 並且深度-1
         int score = -alpha_beta_evaluate(state->next_state(move), depth-1, INT_MIN, -alpha);
-        if(score > alpha){
+        if(score > alpha){ //如果算出來的分數比alpha高 那就代表是目前最好的步驟!
             best_move = move;
             alpha = score;
         }
@@ -388,15 +405,15 @@ void write_valid_spot(std::ofstream& fout) {
     }
     if(moves.empty())
         return;
-    // Keep updating the output until getting killed.
-    int depth = 1;
+    //在下齊的過程中持續更新狀態
+    int depth = 3;
     while (true){
         auto move = alpha_beta_get_move(&root, depth);
         if(move.x != -1 && move.y != -1){
             fout << move.x << " " << move.y << endl;
             fout.flush();
         }
-        depth += 1;
+        depth += 1; //上面的get_move會讓depth變少
     }
 }
 
