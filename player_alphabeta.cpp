@@ -21,7 +21,7 @@ struct Node{
 int player;
 const int SIZE = 15;
 std::array<std::array<int, SIZE>, SIZE> board;
-int alpha_beta(int depth, bool isMax, int alpha, int beta, Node node);
+int alpha_beta(int depth, int isMax, int alpha, int beta, Node node);
 int evaluate(int isMax);
 int check_board();
 
@@ -42,7 +42,7 @@ void write_valid_spot(std::ofstream& fout) {
 			if (board[i][j] == EMPTY){
                 Node node;
                 node.row = i; node.col = j;
-				int temp = alpha_beta (1, true, INT_MIN, INT_MAX, node);
+				int temp = alpha_beta (1, 1, INT_MIN, INT_MAX, node);
 				if (M < temp){
 					M = temp;
 					x = i;
@@ -51,7 +51,7 @@ void write_valid_spot(std::ofstream& fout) {
 			}
 		}
 	}
-	if (x == -1 && y == -1){
+    if (x == -1 && y == -1){
 		x = 15/2;
 		y = 15/2;
 	}
@@ -295,13 +295,13 @@ int evaluate(int isMax){
             }
         }
     }
-    if(isMax)
+    if(isMax==1)
         return (p1_value-p2_value);
-    else
+    else if(isMax==2)
         return (p2_value-p1_value);
 }
 
-int alpha_beta(int depth, bool isMax, int alpha, int beta, Node node){
+int alpha_beta(int depth, int isMax, int alpha, int beta, Node node){
     if(check_board() == 1) return INT_MAX; //玩家1贏了
     else if(check_board() == 2) return INT_MIN; //玩家2贏了
 
@@ -326,10 +326,10 @@ int alpha_beta(int depth, bool isMax, int alpha, int beta, Node node){
     //開始跑!
     int len = valid_node.size();
  
-    if (isMax){ //玩家1當max
+    if (isMax == 1){ //玩家1當max
         int best_value = INT_MAX;
         for (int i=0;i<len;i++){
-			int temp = alpha_beta(depth - 1, false, alpha, beta, valid_node[i]);
+			int temp = alpha_beta(depth - 1, 2, alpha, beta, valid_node[i]);
 			if (best_value > temp){
 				best_value = temp;
 			}
@@ -342,10 +342,10 @@ int alpha_beta(int depth, bool isMax, int alpha, int beta, Node node){
 		}
         return best_value;
     }
-    else{ //玩家2當min
+    else if(isMax == 2){ //玩家2當min
         int best_value = INT_MIN;
         for (int i=0;i<len;i++){
-			int temp = alpha_beta(depth - 1, true, alpha, beta, valid_node[i]);
+			int temp = alpha_beta(depth - 1, 1, alpha, beta, valid_node[i]);
 			if (best_value < temp){
 				best_value = temp;
 			}
