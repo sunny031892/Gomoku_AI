@@ -88,6 +88,7 @@ void get_all_move(){
       all_move.push_back(Point(i,j));
 }
 
+//檢查遊戲有沒有輸掉
 int check_board(Board_min board){
     //檢查棋盤有沒有結束 玩家1獲勝回傳1 玩家2獲勝回傳2 沒結束回傳0
     //橫的檢查
@@ -439,7 +440,7 @@ Point alpha_beta_get_move(State *state, int depth){
     int alpha = INT_MIN; //alpha一開始是最小
     auto all_moves = state->legal_move; //把所有可以的步驟丟到all_moves
     for(Point move: all_moves){
-        //跑一次就換一個玩家考慮 所以把計算的分數加負號 alpha直變成最小 beta改成-alpha 並且深度-1
+        //把計算的分數加負號 alpha直變成最小 beta改成-alpha 並且深度-1
         int score = -alpha_beta_evaluate(state->next_state(move), depth-1, INT_MIN, -alpha);
         if(score > alpha){ //如果算出來的分數比alpha高 那就代表是目前最好的步驟!
             best_move = move;
